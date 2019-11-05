@@ -7,9 +7,10 @@ class ImagesEventHandler(RegexMatchingEventHandler):
     # exclude files with "proxy" in their name from the inputs
     IMAGES_REGEX = ["^((?!proxy).)*(mp4|mov|mxf)$"]
 
-    def __init__(self, watchfolder):
+    def __init__(self, watchfolder, signals):
         super(ImagesEventHandler,self).__init__(self.IMAGES_REGEX)
         self.watchfolder = watchfolder
+        self.signals = signals
 
     # Catch - all file system events
     def on_any_event(self, event):
@@ -40,4 +41,14 @@ class ImagesEventHandler(RegexMatchingEventHandler):
         self.process(event)
 
     def process(self, event):
-        ProxyConverter(event.src_path, self.watchfolder)
+        converter = ProxyConverter()
+        filename, extension = os.path.splitext(event.src_path)
+        self.output_filename = "{0}_proxy.mov".format(os.path.basename(filename))
+
+        proxy_path = converter.make_folder(event.src_path, self.watchfolder)
+        print("proxy path = ", proxy_path)
+
+        output_path = os.path.join(proxy_path, self.output_filename)
+        print("output path = ", output_path)
+
+        converter.process(event.src_path, output_path, self.signals)

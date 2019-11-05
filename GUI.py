@@ -1,20 +1,18 @@
-import sys
 import PySide2.QtWidgets as QtWidgets
-import PySide2.QtGui as QtGui
 import PySide2.QtCore as QtCore
 from watch_folder import FolderWatcher
-import time
-import os
+import sys,os
 
-@QtCore.Slot()
+
 class ConverterGui(QtWidgets.QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, watcher_thread, parent=None):
         super(ConverterGui, self).__init__(parent)
-        self.setMinimumSize(400,100)
+        self.setMinimumSize(600,100)
         self.setWindowTitle("Proxy Converter")
         self.setWindowFlags(self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint)
         self.files_converted = 0
         self.watchfolder_path = "no folder specified"
+        self.watcher_thread = watcher_thread
 
         self.createWidgets()
         self.createLayout()
@@ -45,9 +43,9 @@ class ConverterGui(QtWidgets.QDialog):
 
     def createLayout(self):
         print("create layout")
-        self.folder_layout = QtWidgets.QHBoxLayout()
-        self.folder_layout.addWidget(self.lbl_watchfolder)
-        self.folder_layout.addWidget(self.lbl_watchfolder_path)
+        self.folder_layout = QtWidgets.QFormLayout()
+        self.folder_layout.addRow(self.lbl_watchfolder,self.lbl_watchfolder_path)
+        # self.folder_layout.addRow(QtWidgets.QSpacerItem(), )
 
         self.status_layout = QtWidgets.QHBoxLayout()
         self.status_layout.addWidget(self.lbl_status)
@@ -73,6 +71,10 @@ class ConverterGui(QtWidgets.QDialog):
         print("create connetions")
         self.btn_OK.clicked.connect(self.clickOk)
         self.btn_Cancel.clicked.connect(self.clickCancel)
+        watcher_thread.signals.progress_signal.connect(self.progressbarSetPercentage)
+        watcher_thread.signals.filename_signal.connect(self.updateStatusLabel)
+        watcher_thread.signals.waiting_signal.connect(self.progressbarWaiting)
+
 
     def updateStatusLabel(self,filename=None):
         if filename is None:
@@ -85,6 +87,7 @@ class ConverterGui(QtWidgets.QDialog):
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(0)
 
+    @QtCore.Slot(object)
     def progressbarSetPercentage(self, percentage):
         self.progress_bar.reset()
         self.progress_bar.setMinimum(0)
@@ -99,21 +102,27 @@ class ConverterGui(QtWidgets.QDialog):
         self.updateStatusLabel("file.mov")
         self.progressbarSetPercentage(50)
 
-
     def clickCancel(self):
         self.updateStatusLabel()
         self.progressbarWaiting()
+
+
+class WatcherConnections(QtCore.QObject):
+    progress_signal = QtCore.Signal(object)
+    filename_signal = QtCore.Signal(object)
+    waiting_signal = QtCore.Signal(object)
 
 
 class WatcherThread(QtCore.QThread):
     def __init__(self, path):
         super(WatcherThread, self).__init__()
         self.src_path = path
+        self.signals = WatcherConnections()
         print("WatcherThread created")
 
     def run(self):
-        FolderWatcher(self.src_path).run()
-
+        print ("RUN")
+        FolderWatcher(self.src_path, self.signals).run()
 
 
 if __name__ == "__main__":
@@ -124,7 +133,7 @@ if __name__ == "__main__":
         if os.path.isdir(src_path):
             print("Watchfolder is set to: {}".format(src_path))
             watcher_thread = WatcherThread(src_path)
-            watcher_thread.start()
+            watcher_thread.start()  # Calls WatcherThread.run()
             gui = ConverterGui()
             gui.show()
             sys.exit(app.exec_())
@@ -132,9 +141,10 @@ if __name__ == "__main__":
         print("Please specify a folder to watch")
         src_path = r"C:\Users\Surface\Desktop\TEST_FOLDER\RUSHES"
         watcher_thread = WatcherThread(src_path)
-        watcher_thread.start()
-        gui = ConverterGui()
+        gui = ConverterGui(watcher_thread)
+
         gui.show()
+        gui.setFolder(src_path)
+
+        watcher_thread.start()
         sys.exit(app.exec_())
-
-
