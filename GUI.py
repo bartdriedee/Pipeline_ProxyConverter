@@ -13,6 +13,7 @@ class ConverterGui(QtWidgets.QDialog):
         self.files_converted = 0
         self.watchfolder_path = "no folder specified"
         self.watcher_thread = watcher_thread
+        self.processed_files = ""
 
         self.createWidgets()
         self.createLayout()
@@ -29,23 +30,26 @@ class ConverterGui(QtWidgets.QDialog):
         self.lbl_watchfolder_path = QtWidgets.QLabel(self.watchfolder_path)
         self.lbl_watchfolder_path.setAlignment(QtCore.Qt.AlignRight)
 
-        self.lbl_files_converted = QtWidgets.QLabel(str(self.files_converted))
+        self.lbl_files_converted = QtWidgets.QLabel("Files converted:")
+        self.lbl_files_converted.setAlignment(QtCore.Qt.AlignRight)
+        self.lbl_counter = QtWidgets.QLabel(str(self.files_converted))
+        self.lbl_counter.setAlignment(QtCore.Qt.AlignRight)
 
         self.lbl_status = QtWidgets.QLabel("Converting file:")
         self.lbl_current_file = QtWidgets.QLabel()
         self.lbl_current_file.setAlignment(QtCore.Qt.AlignRight)
         self.progress_bar = QtWidgets.QProgressBar()
+        self.progress_bar.setAlignment(QtCore.Qt.AlignHCenter)
+        self.txt_processed = QtWidgets.QTextEdit()
 
-        self.warnings = QtWidgets.QTextEdit()
-
-        self.btn_OK = QtWidgets.QPushButton("OK")
-        self.btn_Cancel = QtWidgets.QPushButton("Cancel")
+        self.set_folder = QtWidgets.QPushButton("Set Folder")
+        self.btn_Cancel = QtWidgets.QPushButton("Stop_watching")
 
     def createLayout(self):
         print("create layout")
         self.folder_layout = QtWidgets.QFormLayout()
         self.folder_layout.addRow(self.lbl_watchfolder,self.lbl_watchfolder_path)
-        # self.folder_layout.addRow(QtWidgets.QSpacerItem(), )
+        self.folder_layout.addRow(self.lbl_files_converted, self.lbl_counter)
 
         self.status_layout = QtWidgets.QHBoxLayout()
         self.status_layout.addWidget(self.lbl_status)
@@ -56,10 +60,10 @@ class ConverterGui(QtWidgets.QDialog):
         self.ln_layout.addWidget(self.empty_line)
         self.ln_layout.addLayout(self.status_layout)
         self.ln_layout.addWidget(self.progress_bar)
-        self.ln_layout.addWidget(self.warnings)
+        self.ln_layout.addWidget(self.txt_processed)
 
         self.btn_layout = QtWidgets.QHBoxLayout()
-        self.btn_layout.addWidget(self.btn_OK)
+        self.btn_layout.addWidget(self.set_folder)
         self.btn_layout.addWidget(self.btn_Cancel)
 
         self.main_layout = QtWidgets.QVBoxLayout(self)
@@ -69,12 +73,26 @@ class ConverterGui(QtWidgets.QDialog):
 
     def createConnections(self):
         print("create connetions")
-        self.btn_OK.clicked.connect(self.clickOk)
+        self.set_folder.clicked.connect(self.clickOk)
         self.btn_Cancel.clicked.connect(self.clickCancel)
         watcher_thread.signals.progress_signal.connect(self.progressbarSetPercentage)
         watcher_thread.signals.filename_signal.connect(self.updateStatusLabel)
         watcher_thread.signals.waiting_signal.connect(self.progressbarWaiting)
+        watcher_thread.signals.count_signal.connect(self.addToCounter)
+        watcher_thread.signals.processed_signal.connect(self.addToProccesed)
 
+
+    def addToCounter(self):
+        self.files_converted +=1
+        self.lbl_counter.setText(str(self.files_converted))
+
+    def addToProccesed(self, file):
+        txt = []
+        txt.append(self.processed_files)
+        txt.append("\n")
+        txt.append(file)
+        self.processed_files = r"".join(txt)
+        self.txt_processed.setText(self.processed_files)
 
     def updateStatusLabel(self,filename=None):
         if filename is None:
@@ -87,7 +105,6 @@ class ConverterGui(QtWidgets.QDialog):
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(0)
 
-    @QtCore.Slot(object)
     def progressbarSetPercentage(self, percentage):
         self.progress_bar.reset()
         self.progress_bar.setMinimum(0)
@@ -111,6 +128,8 @@ class WatcherConnections(QtCore.QObject):
     progress_signal = QtCore.Signal(object)
     filename_signal = QtCore.Signal(object)
     waiting_signal = QtCore.Signal(object)
+    count_signal = QtCore.Signal(object)
+    processed_signal = QtCore.Signal(object)
 
 
 class WatcherThread(QtCore.QThread):

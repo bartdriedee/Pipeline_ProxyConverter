@@ -22,9 +22,12 @@ class ProxyConverter:
 
     def process(self, input, output, signals):
         print("Converting file: {}".format(input))
+        signals.filename_signal.emit(os.path.basename(input))
         length = self.countFrames(input)
         print("length =", length, "frames")
-        command = 'ffmpeg -n -hide_banner -loglevel error -stats -i "{0}" -vf "scale={1}:{2}:force_original_aspect_ratio=decrease,pad={1}:{2}:(ow-iw)/2:(oh-ih)/2" -c:a copy -c:v "prores_ks" -profile:v 0 -pix_fmt yuv422p10 "{3}"'.format(input, self.width, self.height, output)
+
+        # command = 'ffmpeg -n -hide_banner -loglevel error -stats -i "{0}" -vf "scale={1}:{2}:force_original_aspect_ratio=decrease,pad={1}:{2}:(ow-iw)/2:(oh-ih)/2" -c:a copy -c:v "prores_ks" -profile:v 0 -pix_fmt yuv422p10 "{3}"'.format(input, self.width, self.height, output)
+        command = 'ffmpeg -n -hide_banner -loglevel error -stats -i "{0}" -vf "scale={1}:{2}:force_original_aspect_ratio=decrease" -c:a copy -c:v "prores_ks" -profile:v 0 -pix_fmt yuv422p10 "{3}"'.format(input, self.width, self.height, output)
         result = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
@@ -33,9 +36,12 @@ class ProxyConverter:
             encoding='utf-8'
         )
         for line in result.stdout:
-            signals.filename_signal.emit(os.path.basename(input))
+            print((line))
             signals.progress_signal.emit(math.floor((float(line.strip().split()[1])/length)*100))
+
         print("wating for next file")
+        signals.processed_signal.emit(input)
+        signals.count_signal.emit(None)
         signals.filename_signal.emit(None)
         signals.waiting_signal.emit(None)
 

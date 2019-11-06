@@ -37,7 +37,14 @@ class ImagesEventHandler(RegexMatchingEventHandler):
         file_size = -1
         while file_size != os.path.getsize(event.src_path):
             file_size = os.path.getsize(event.src_path)
-            time.sleep(5)
+            time.sleep(1)
+        file_done = False
+        while not file_done:
+            try:
+                os.rename(event.src_path, event.src_path)
+                file_done = True
+            except:
+                pass
         self.process(event)
 
     def process(self, event):
