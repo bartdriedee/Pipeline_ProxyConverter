@@ -1,5 +1,6 @@
 import PySide2.QtWidgets as QtWidgets
 import PySide2.QtCore as QtCore
+import PySide2.QtGui as QtGui
 from watch_folder import FolderWatcher
 import sys,os
 
@@ -8,11 +9,12 @@ class ConverterGui(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(ConverterGui, self).__init__(parent)
         self.setMinimumSize(600,100)
-        self.setWindowTitle("Proxy Converter")
+        self.setWindowTitle("ConvertTo v1.00")
         self.setWindowFlags(self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint)
         self.files_converted = 0
         self.thread_running = False
-        self.watchfolder_path = "no folder specified"
+        self.folder_message = "No folder specified"
+        self.watchfolder_path = self.folder_message
         self.processed_files = ""
 
         self.createWidgets()
@@ -27,11 +29,14 @@ class ConverterGui(QtWidgets.QDialog):
         self.empty_line = QtWidgets.QLabel()
 
         self.lbl_watchfolder = QtWidgets.QLabel("Watching folder:")
-        self.lbl_watchfolder_path = QtWidgets.QLabel(self.watchfolder_path)
-        self.lbl_watchfolder_path.setAlignment(QtCore.Qt.AlignRight)
+        self.lne_watchfolder_path = QtWidgets.QLineEdit(self.folder_message)
+
+        self.btn_set_folder = QtWidgets.QPushButton()
+        self.btn_set_folder.setIcon(QtGui.QIcon("icons8-folder-40.png"))
+        self.btn_set_folder.setFlat(True)
 
         self.lbl_files_converted = QtWidgets.QLabel("Files converted:")
-        self.lbl_files_converted.setAlignment(QtCore.Qt.AlignRight)
+
         self.lbl_counter = QtWidgets.QLabel(str(self.files_converted))
         self.lbl_counter.setAlignment(QtCore.Qt.AlignRight)
 
@@ -42,14 +47,26 @@ class ConverterGui(QtWidgets.QDialog):
         self.progress_bar.setAlignment(QtCore.Qt.AlignHCenter)
         self.txt_processed = QtWidgets.QTextEdit()
 
-        self.set_folder = QtWidgets.QPushButton("Set Folder")
         self.btn_start_stop = QtWidgets.QPushButton("Start")
 
     def createLayout(self):
         print("create layout")
-        self.folder_layout = QtWidgets.QFormLayout()
-        self.folder_layout.addRow(self.lbl_watchfolder,self.lbl_watchfolder_path)
-        self.folder_layout.addRow(self.lbl_files_converted, self.lbl_counter)
+        self.folder_path_layout = QtWidgets.QHBoxLayout()
+        self.folder_path_layout.addWidget(self.lne_watchfolder_path)
+        self.folder_path_layout.addWidget(self.btn_set_folder)
+
+        self.folder_lbl_layout = QtWidgets.QHBoxLayout()
+        self.folder_lbl_layout.addWidget(self.lbl_watchfolder)
+        self.folder_lbl_layout.addStretch()
+
+        self.counter_layout = QtWidgets.QHBoxLayout()
+        self.counter_layout.addWidget(self.lbl_files_converted)
+        self.counter_layout.addWidget(self.lbl_counter)
+
+        self.folder_layout = QtWidgets.QVBoxLayout()
+        self.folder_layout.addLayout(self.folder_lbl_layout)
+        self.folder_layout.addLayout(self.folder_path_layout)
+        self.folder_layout.addLayout(self.counter_layout)
 
         self.status_layout = QtWidgets.QHBoxLayout()
         self.status_layout.addWidget(self.lbl_status)
@@ -63,7 +80,8 @@ class ConverterGui(QtWidgets.QDialog):
         self.ln_layout.addWidget(self.txt_processed)
 
         self.btn_layout = QtWidgets.QHBoxLayout()
-        self.btn_layout.addWidget(self.set_folder)
+        self.btn_layout.addStretch()
+
         self.btn_layout.addWidget(self.btn_start_stop)
 
         self.main_layout = QtWidgets.QVBoxLayout(self)
@@ -73,7 +91,7 @@ class ConverterGui(QtWidgets.QDialog):
 
     def createConnections(self):
         print("create connetions")
-        self.set_folder.clicked.connect(self.clickSetFolder)
+        self.btn_set_folder.clicked.connect(self.clickSetFolder)
         self.btn_start_stop.clicked.connect(self.clickStartStop)
 
 
@@ -94,7 +112,10 @@ class ConverterGui(QtWidgets.QDialog):
             if self.thread_running:
                 self.lbl_current_file.setText("Waiting for file to convert")
             else:
-                self.lbl_current_file.setText("Press start to convert")
+                if self.watchfolder_path == self.folder_message:
+                    self.lbl_current_file.setText("Select a folder to convert")
+                else:
+                    self.lbl_current_file.setText("Press start to convert")
         else:
             self.lbl_current_file.setText(filename)
 
@@ -117,22 +138,23 @@ class ConverterGui(QtWidgets.QDialog):
     def clickSetFolder(self):
         folder_selector = QtWidgets.QFileDialog(self)
         folder_selector.setFileMode(QtWidgets.QFileDialog.Directory)
+        selected_folder = folder_selector.getExistingDirectory(self,"select folder")
+        if selected_folder: # r"C:\Users\Surface\Desktop\TEST_FOLDER\RUSHES"
+            self.watchfolder_path = selected_folder
+            self.setFolderLabel(self.watchfolder_path)
+            self.updateStatusLabel()
 
-        self.watchfolder_path = folder_selector.getExistingDirectory(self,"select folder")  # r"C:\Users\Surface\Desktop\TEST_FOLDER\RUSHES"
-        self.setFolderLabel()
-
-    def setFolderLabel(self):
-        self.lbl_watchfolder_path.setText(self.watchfolder_path)
+    def setFolderLabel(self, label):
+        self.lne_watchfolder_path.setText(label)
 
     def clickStartStop(self):
         if not self.thread_running:
-            if self.watchfolder_path != "no folder specified":
+            if self.watchfolder_path != self.folder_message:
                 self.btn_start_stop.setText("Stop")
                 self.thread_running = True
                 self.startWatcher()
                 self.progressbarWaiting()
                 self.updateStatusLabel()
-
         else:
             self.btn_start_stop.setText("Start")
             self.thread_running = False
