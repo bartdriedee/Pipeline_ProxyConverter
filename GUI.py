@@ -5,14 +5,14 @@ import sys,os
 
 
 class ConverterGui(QtWidgets.QDialog):
-    def __init__(self, watcher_thread, parent=None):
+    def __init__(self, parent=None):
         super(ConverterGui, self).__init__(parent)
         self.setMinimumSize(600,100)
         self.setWindowTitle("Proxy Converter")
         self.setWindowFlags(self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint)
         self.files_converted = 0
+        self.thread_running = False
         self.watchfolder_path = "no folder specified"
-        self.watcher_thread = watcher_thread
         self.processed_files = ""
 
         self.createWidgets()
@@ -20,7 +20,7 @@ class ConverterGui(QtWidgets.QDialog):
         self.createConnections()
 
         self.updateStatusLabel()
-        self.progressbarWaiting()
+
 
     def createWidgets(self):
         print("create widgets")
@@ -43,7 +43,7 @@ class ConverterGui(QtWidgets.QDialog):
         self.txt_processed = QtWidgets.QTextEdit()
 
         self.set_folder = QtWidgets.QPushButton("Set Folder")
-        self.btn_Cancel = QtWidgets.QPushButton("Stop_watching")
+        self.btn_start_stop = QtWidgets.QPushButton("Start")
 
     def createLayout(self):
         print("create layout")
@@ -64,7 +64,7 @@ class ConverterGui(QtWidgets.QDialog):
 
         self.btn_layout = QtWidgets.QHBoxLayout()
         self.btn_layout.addWidget(self.set_folder)
-        self.btn_layout.addWidget(self.btn_Cancel)
+        self.btn_layout.addWidget(self.btn_start_stop)
 
         self.main_layout = QtWidgets.QVBoxLayout(self)
 
@@ -73,13 +73,8 @@ class ConverterGui(QtWidgets.QDialog):
 
     def createConnections(self):
         print("create connetions")
-        self.set_folder.clicked.connect(self.clickOk)
-        self.btn_Cancel.clicked.connect(self.clickCancel)
-        watcher_thread.signals.progress_signal.connect(self.progressbarSetPercentage)
-        watcher_thread.signals.filename_signal.connect(self.updateStatusLabel)
-        watcher_thread.signals.waiting_signal.connect(self.progressbarWaiting)
-        watcher_thread.signals.count_signal.connect(self.addToCounter)
-        watcher_thread.signals.processed_signal.connect(self.addToProccesed)
+        self.set_folder.clicked.connect(self.clickSetFolder)
+        self.btn_start_stop.clicked.connect(self.clickStartStop)
 
 
     def addToCounter(self):
@@ -94,9 +89,12 @@ class ConverterGui(QtWidgets.QDialog):
         self.processed_files = r"".join(txt)
         self.txt_processed.setText(self.processed_files)
 
-    def updateStatusLabel(self,filename=None):
+    def updateStatusLabel(self, filename=None):
         if filename is None:
-            self.lbl_current_file.setText("Waiting for file to convert")
+            if self.thread_running:
+                self.lbl_current_file.setText("Waiting for file to convert")
+            else:
+                self.lbl_current_file.setText("Press start to convert")
         else:
             self.lbl_current_file.setText(filename)
 
@@ -111,17 +109,44 @@ class ConverterGui(QtWidgets.QDialog):
         self.progress_bar.setMaximum(100)
         self.progress_bar.setValue(percentage)
 
-    def setFolder(self, folder=""):
-        self.watchfolder_path = folder
+    def progressbarStop(self):
+        self.progress_bar.reset()
+        self.progress_bar.setMaximum(100)
+        self.progress_bar.setTextVisible = False
+
+    def clickSetFolder(self):
+        folder_selector = QtWidgets.QFileDialog(self)
+        folder_selector.setFileMode(QtWidgets.QFileDialog.Directory)
+
+        self.watchfolder_path = folder_selector.getExistingDirectory(self,"select folder")  # r"C:\Users\Surface\Desktop\TEST_FOLDER\RUSHES"
         self.lbl_watchfolder_path.setText(self.watchfolder_path)
 
-    def clickOk(self):
-        self.updateStatusLabel("file.mov")
-        self.progressbarSetPercentage(50)
+    def clickStartStop(self):
+        if not self.thread_running:
+            if self.watchfolder_path != "no folder specified":
+                self.btn_start_stop.setText("Stop")
+                self.thread_running = True
+                self.startWatcher()
+                self.progressbarWaiting()
+                self.updateStatusLabel()
 
-    def clickCancel(self):
-        self.updateStatusLabel()
-        self.progressbarWaiting()
+        else:
+            self.btn_start_stop.setText("Start")
+            self.thread_running = False
+            self.progressbarStop()
+            self.updateStatusLabel()
+
+
+
+    def startWatcher(self):
+        self.watcher_thread = WatcherThread(self)
+        self.signals = WatcherConnections()
+        self.watcher_thread.start()
+        self.signals.progress_signal.connect(self.progressbarSetPercentage)
+        self.signals.filename_signal.connect(self.updateStatusLabel)
+        self.signals.waiting_signal.connect(self.progressbarWaiting)
+        self.signals.count_signal.connect(self.addToCounter)
+        self.signals.processed_signal.connect(self.addToProccesed)
 
 
 class WatcherConnections(QtCore.QObject):
@@ -133,37 +158,29 @@ class WatcherConnections(QtCore.QObject):
 
 
 class WatcherThread(QtCore.QThread):
-    def __init__(self, path):
+    def __init__(self, gui):
         super(WatcherThread, self).__init__()
-        self.src_path = path
-        self.signals = WatcherConnections()
+        self.gui = gui
         print("WatcherThread created")
 
-    def run(self):
-        print ("RUN")
-        FolderWatcher(self.src_path, self.signals).run()
+    def run(self,):
+        FolderWatcher(self.gui).run()
 
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
 
+
     if len(sys.argv) > 1:
         src_path = sys.argv[1]
         if os.path.isdir(src_path):
             print("Watchfolder is set to: {}".format(src_path))
-            watcher_thread = WatcherThread(src_path)
-            watcher_thread.start()  # Calls WatcherThread.run()
             gui = ConverterGui()
+            gui.watchfolder_path = src_path
             gui.show()
+
             sys.exit(app.exec_())
     else:
-        print("Please specify a folder to watch")
-        src_path = r"C:\Users\Surface\Desktop\TEST_FOLDER\RUSHES"
-        watcher_thread = WatcherThread(src_path)
-        gui = ConverterGui(watcher_thread)
-
+        gui = ConverterGui()
         gui.show()
-        gui.setFolder(src_path)
-
-        watcher_thread.start()
         sys.exit(app.exec_())

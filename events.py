@@ -7,10 +7,10 @@ class ImagesEventHandler(RegexMatchingEventHandler):
     # exclude files with "proxy" in their name from the inputs
     IMAGES_REGEX = ["^((?!proxy).)*(mp4|mov|mxf)$"]
 
-    def __init__(self, watchfolder, signals):
+    def __init__(self, gui):
         super(ImagesEventHandler,self).__init__(self.IMAGES_REGEX)
-        self.watchfolder = watchfolder
-        self.signals = signals
+        self.watchfolder = gui.watchfolder_path
+        self.signals = gui.signals
 
     # Catch - all file system events
     def on_any_event(self, event):

@@ -6,6 +6,8 @@ import math
 
 class ProxyConverter:
     def __init__(self, width=1920, height=1080):
+        self.padding = False
+        self.force_aspect = True
         self.width = width
         self.height = height
 
@@ -26,8 +28,17 @@ class ProxyConverter:
         length = self.countFrames(input)
         print("length =", length, "frames")
 
-        # command = 'ffmpeg -n -hide_banner -loglevel error -stats -i "{0}" -vf "scale={1}:{2}:force_original_aspect_ratio=decrease,pad={1}:{2}:(ow-iw)/2:(oh-ih)/2" -c:a copy -c:v "prores_ks" -profile:v 0 -pix_fmt yuv422p10 "{3}"'.format(input, self.width, self.height, output)
-        command = 'ffmpeg -n -hide_banner -loglevel error -stats -i "{0}" -vf "scale={1}:{2}:force_original_aspect_ratio=decrease" -c:a copy -c:v "prores_ks" -profile:v 0 -pix_fmt yuv422p10 "{3}"'.format(input, self.width, self.height, output)
+        if self.force_aspect:
+            aspect_cmd = ':force_original_aspect_ratio=decrease'
+            if self.padding:
+                padding_cmd = ',pad={0}:{1}:(ow-iw)/2:(oh-ih)/2'.format(self.width, self.height)
+            else:
+                padding_cmd = ''
+        else:
+            aspect_cmd = ''
+            padding_cmd = ''
+
+        command = 'ffmpeg -n -hide_banner -loglevel error -stats -i "{0}" -vf "scale={1}:{2}[3]{4}" -c:a copy -c:v "prores_ks" -profile:v 0 -pix_fmt yuv422p10 "{5}"'.format(input, self.width, self.height,aspect_cmd, padding_cmd, output)
         result = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
