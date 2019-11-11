@@ -119,6 +119,9 @@ class ConverterGui(QtWidgets.QDialog):
         folder_selector.setFileMode(QtWidgets.QFileDialog.Directory)
 
         self.watchfolder_path = folder_selector.getExistingDirectory(self,"select folder")  # r"C:\Users\Surface\Desktop\TEST_FOLDER\RUSHES"
+        self.setFolderLabel()
+
+    def setFolderLabel(self):
         self.lbl_watchfolder_path.setText(self.watchfolder_path)
 
     def clickStartStop(self):
@@ -177,6 +180,7 @@ if __name__ == "__main__":
             print("Watchfolder is set to: {}".format(src_path))
             gui = ConverterGui()
             gui.watchfolder_path = src_path
+            gui.setFolderLabel()
             gui.show()
 
             sys.exit(app.exec_())
