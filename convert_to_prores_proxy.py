@@ -22,7 +22,7 @@ class ProxyConverter:
         return float(framecount)
 
 
-    def process(self, input, output, signals):
+    def process(self, input, output, signals, codec):
         print("Converting file: {}".format(input))
         signals.filename_signal.emit(os.path.basename(input))
         length = self.countFrames(input)
@@ -38,7 +38,13 @@ class ProxyConverter:
             aspect_cmd = ''
             padding_cmd = ''
 
-        command = 'ffmpeg -n -hide_banner -loglevel error -stats -i "{0}" -vf "scale={1}:{2}[3]{4}" -c:a copy -c:v "prores_ks" -profile:v 0 -pix_fmt yuv422p10 "{5}"'.format(input, self.width, self.height,aspect_cmd, padding_cmd, output)
+        if codec == "prores":
+            codec_cmd = '-c:v "prores_ks" -profile:v 0 -pix_fmt yuv422p10'
+        if codec == "h264":
+            codec_cmd = '-c:v "libx264" -pix_fmt yuv420p'
+
+
+        command = 'ffmpeg -n -hide_banner -loglevel error -stats -i "{0}" -vf "scale={1}:{2}[3]{4}" -c:a copy {5} "{6}"'.format(input, self.width, self.height,aspect_cmd, padding_cmd, codec_cmd, output)
         result = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
@@ -48,8 +54,10 @@ class ProxyConverter:
         )
         for line in result.stdout:
             print((line))
-            signals.progress_signal.emit(math.floor((float(line.strip().split()[1])/length)*100))
-
+            try:
+                signals.progress_signal.emit(math.floor((float(line.strip().split()[1])/length)*100))
+            except:
+                pass
         print("wating for next file")
         signals.processed_signal.emit(input)
         signals.count_signal.emit(None)

@@ -16,6 +16,7 @@ class ConverterGui(QtWidgets.QDialog):
         self.folder_message = "No folder specified"
         self.watchfolder_path = self.folder_message
         self.processed_files = ""
+        self.format = "prores"
 
         self.createWidgets()
         self.createLayout()
@@ -34,6 +35,10 @@ class ConverterGui(QtWidgets.QDialog):
         self.btn_set_folder = QtWidgets.QPushButton()
         self.btn_set_folder.setIcon(QtGui.QIcon("icons8-folder-40.png"))
         self.btn_set_folder.setFlat(True)
+
+        self.rbn_prores = QtWidgets.QRadioButton("Prores proxy")
+        self.rbn_prores.setChecked(True)
+        self.rbn_h264 = QtWidgets.QRadioButton("H264")
 
         self.lbl_files_converted = QtWidgets.QLabel("Files converted:")
 
@@ -55,6 +60,10 @@ class ConverterGui(QtWidgets.QDialog):
         self.folder_path_layout.addWidget(self.lne_watchfolder_path)
         self.folder_path_layout.addWidget(self.btn_set_folder)
 
+        self.format_layout = QtWidgets.QHBoxLayout()
+        self.format_layout.addWidget(self.rbn_h264)
+        self.format_layout.addWidget(self.rbn_prores)
+
         self.folder_lbl_layout = QtWidgets.QHBoxLayout()
         self.folder_lbl_layout.addWidget(self.lbl_watchfolder)
         self.folder_lbl_layout.addStretch()
@@ -63,37 +72,43 @@ class ConverterGui(QtWidgets.QDialog):
         self.counter_layout.addWidget(self.lbl_files_converted)
         self.counter_layout.addWidget(self.lbl_counter)
 
-        self.folder_layout = QtWidgets.QVBoxLayout()
-        self.folder_layout.addLayout(self.folder_lbl_layout)
-        self.folder_layout.addLayout(self.folder_path_layout)
-        self.folder_layout.addLayout(self.counter_layout)
-
         self.status_layout = QtWidgets.QHBoxLayout()
         self.status_layout.addWidget(self.lbl_status)
         self.status_layout.addWidget(self.lbl_current_file)
 
-        self.ln_layout = QtWidgets.QVBoxLayout()
-        self.ln_layout.addLayout(self.folder_layout)
-        self.ln_layout.addWidget(self.empty_line)
-        self.ln_layout.addLayout(self.status_layout)
-        self.ln_layout.addWidget(self.progress_bar)
-        self.ln_layout.addWidget(self.txt_processed)
+        self.folder_layout = QtWidgets.QVBoxLayout()
+        self.folder_layout.addLayout(self.folder_lbl_layout)
+        self.folder_layout.addLayout(self.folder_path_layout)
 
         self.btn_layout = QtWidgets.QHBoxLayout()
         self.btn_layout.addStretch()
-
         self.btn_layout.addWidget(self.btn_start_stop)
 
+        # top level layout gets self as parameter
         self.main_layout = QtWidgets.QVBoxLayout(self)
-
-        self.main_layout.addLayout(self.ln_layout)
+        self.main_layout.addLayout(self.folder_layout)
+        self.main_layout.addLayout(self.format_layout)
+        self.main_layout.addWidget(self.empty_line)
+        self.main_layout.addLayout(self.counter_layout)
+        self.main_layout.addLayout(self.status_layout)
+        self.main_layout.addWidget(self.progress_bar)
+        self.main_layout.addWidget(self.txt_processed)
         self.main_layout.addLayout(self.btn_layout)
 
     def createConnections(self):
         print("create connetions")
         self.btn_set_folder.clicked.connect(self.clickSetFolder)
         self.btn_start_stop.clicked.connect(self.clickStartStop)
+        self.rbn_prores.toggled.connect(self.proresToggled)
+        self.rbn_h264.toggled.connect(self.h264Toggled)
 
+    def proresToggled(self):
+        print("prores")
+        self.format = "prores"
+
+    def h264Toggled(self):
+        print("h264")
+        self.format = "h264"
 
     def addToCounter(self):
         self.files_converted +=1
@@ -155,11 +170,25 @@ class ConverterGui(QtWidgets.QDialog):
                 self.startWatcher()
                 self.progressbarWaiting()
                 self.updateStatusLabel()
+                self.disableInput()
         else:
             self.btn_start_stop.setText("Start")
             self.thread_running = False
             self.progressbarStop()
             self.updateStatusLabel()
+            self.enableInput()
+
+    def disableInput(self):
+        self.rbn_prores.setDisabled(True)
+        self.rbn_h264.setDisabled(True)
+        self.lne_watchfolder_path.setDisabled(True)
+        self.btn_set_folder.setDisabled(True)
+
+    def enableInput(self):
+        self.rbn_prores.setEnabled(True)
+        self.rbn_h264.setEnabled(True)
+        self.lne_watchfolder_path.setEnabled(True)
+        self.btn_set_folder.setEnabled(True)
 
 
 

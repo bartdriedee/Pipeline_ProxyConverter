@@ -11,6 +11,7 @@ class ImagesEventHandler(RegexMatchingEventHandler):
         super(ImagesEventHandler,self).__init__(self.IMAGES_REGEX)
         self.watchfolder = gui.watchfolder_path
         self.signals = gui.signals
+        self.codec = gui.format
 
     # Catch - all file system events
     def on_any_event(self, event):
@@ -58,4 +59,4 @@ class ImagesEventHandler(RegexMatchingEventHandler):
         output_path = os.path.join(proxy_path, self.output_filename)
         print("output path = ", output_path)
 
-        converter.process(event.src_path, output_path, self.signals)
+        converter.process(event.src_path, output_path, self.signals, self.codec)
