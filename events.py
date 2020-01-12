@@ -49,6 +49,7 @@ class ImagesEventHandler(RegexMatchingEventHandler):
         self.process(event)
 
     def process(self, event):
+        print(dir(event))
         converter = ProxyConverter()
         filename, extension = os.path.splitext(event.src_path)
         self.output_filename = "{0}_proxy.mov".format(os.path.basename(filename))
