@@ -13,7 +13,7 @@ class ConverterGui(QtWidgets.QDialog):
         self.setWindowFlags(self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint)
         self.files_converted = 0
         self.thread_running = False
-        self.folder_message = "No folder specified"
+        self.folder_message = "Enter a valid folder path"
         self.watchfolder_path = self.folder_message
         self.processed_files = ""
         self.format = "prores"
@@ -21,7 +21,6 @@ class ConverterGui(QtWidgets.QDialog):
         self.createWidgets()
         self.createLayout()
         self.createConnections()
-
         self.updateStatusLabel()
 
 
@@ -53,6 +52,7 @@ class ConverterGui(QtWidgets.QDialog):
         self.txt_processed = QtWidgets.QTextEdit()
 
         self.btn_start_stop = QtWidgets.QPushButton("Start")
+        self.btn_start_stop.setEnabled(False)
 
     def createLayout(self):
         print("create layout")
@@ -101,6 +101,7 @@ class ConverterGui(QtWidgets.QDialog):
         self.btn_start_stop.clicked.connect(self.clickStartStop)
         self.rbn_prores.toggled.connect(self.proresToggled)
         self.rbn_h264.toggled.connect(self.h264Toggled)
+        self.lne_watchfolder_path.editingFinished.connect(self.editPath)
 
     def proresToggled(self):
         print("prores")
@@ -128,7 +129,7 @@ class ConverterGui(QtWidgets.QDialog):
                 self.lbl_current_file.setText("Waiting for file to convert")
             else:
                 if self.watchfolder_path == self.folder_message:
-                    self.lbl_current_file.setText("Select a folder to convert")
+                    self.lbl_current_file.setText("No path set")
                 else:
                     self.lbl_current_file.setText("Press start to convert")
         else:
@@ -151,20 +152,23 @@ class ConverterGui(QtWidgets.QDialog):
         self.progress_bar.setTextVisible = False
 
     def clickSetFolder(self):
+        start_path = self.lne_watchfolder_path.text()
         folder_selector = QtWidgets.QFileDialog(self)
+        if self.validatePath(start_path):
+            folder_selector.setDirectory(start_path)
         folder_selector.setFileMode(QtWidgets.QFileDialog.Directory)
         selected_folder = folder_selector.getExistingDirectory(self,"select folder")
-        if selected_folder: # r"C:\Users\Surface\Desktop\TEST_FOLDER\RUSHES"
+        if selected_folder:
             self.watchfolder_path = selected_folder
             self.setFolderLabel(self.watchfolder_path)
             self.updateStatusLabel()
+            self.editPath()
 
     def setFolderLabel(self, label):
         self.lne_watchfolder_path.setText(label)
 
     def clickStartStop(self):
         if not self.thread_running:
-            if self.watchfolder_path != self.folder_message:
                 self.btn_start_stop.setText("Stop")
                 self.thread_running = True
                 self.startWatcher()
@@ -190,6 +194,23 @@ class ConverterGui(QtWidgets.QDialog):
         self.lne_watchfolder_path.setEnabled(True)
         self.btn_set_folder.setEnabled(True)
 
+    def validatePath(self, input_path):
+        if os.path.isdir(input_path):
+            print("{} is a valid path".format(input_path))
+            return True
+        else:
+
+            return False
+
+    def editPath(self):
+        if self.validatePath(self.lne_watchfolder_path.text()):
+            print("Enable Button")
+            self.btn_start_stop.setEnabled(True)
+            self.lne_watchfolder_path.setStyleSheet("color:black;")
+        else:
+            self.setFolderLabel(self.folder_message)
+            self.btn_start_stop.setEnabled(False)
+            self.lne_watchfolder_path.setStyleSheet("color:red;")
 
 
     def startWatcher(self):

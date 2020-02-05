@@ -6,7 +6,6 @@ from events import ImagesEventHandler
 class FolderWatcher:
     def __init__(self, gui):
         self.gui = gui
-        print ("Folderwatcher", gui)
         print("Watching folder: {}".format(self.gui.watchfolder_path))
         self.__src_path = gui.watchfolder_path
         self.__event_handler = ImagesEventHandler(gui)
