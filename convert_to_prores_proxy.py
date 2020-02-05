@@ -31,7 +31,7 @@ class ProxyConverter:
         if self.force_aspect:
             aspect_cmd = ':force_original_aspect_ratio=decrease'
             if self.padding:
-                padding_cmd = ',pad={0}:{1}:(ow-iw)/2:(oh-ih)/2'.format(self.width, self.height)
+                padding_cmd = f',pad={self.width}:{self.height}:(ow-iw)/2:(oh-ih)/2'
             else:
                 padding_cmd = ''
         else:
@@ -44,14 +44,17 @@ class ProxyConverter:
             codec_cmd = '-c:v "libx264" -pix_fmt yuv420p'
 
 
-        command = 'ffmpeg -n -hide_banner -loglevel error -stats -i "{0}" -vf "scale={1}:{2}[3]{4}" -c:a copy {5} "{6}"'.format(input, self.width, self.height,aspect_cmd, padding_cmd, codec_cmd, output)
+        command = f'ffmpeg -n -hide_banner -loglevel error -stats -i "{input}" -vf "scale={self.width}:{self.height} {aspect_cmd} {padding_cmd}" -c:a copy {codec_cmd} "{output}"'
+
         result = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             universal_newlines=True,
-            encoding='utf-8'
+            encoding='utf-8',
+            shell=True
         )
+
         for line in result.stdout:
             print((line))
             try:
