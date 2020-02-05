@@ -5,7 +5,6 @@ from watch_folder import FolderWatcher
 import sys
 import os
 
-
 class ConverterGui(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(ConverterGui, self).__init__(parent)
@@ -15,6 +14,7 @@ class ConverterGui(QtWidgets.QDialog):
         self.files_converted = 0
         self.thread_running = False
         self.folder_message = "Enter a valid folder path"
+        self.folder_icon = "data/icons8-folder-40.png"
         self.watchfolder_path = self.folder_message
         self.processed_files = ""
         self.format = "prores"
@@ -24,6 +24,11 @@ class ConverterGui(QtWidgets.QDialog):
         self.createConnections()
         self.updateStatusLabel()
 
+    def resource_path(self, relative):
+        if hasattr(sys, "_MEIPASS"):
+            print(os.path.join(sys._MEIPASS, relative))
+            return os.path.join(sys._MEIPASS, relative)
+        return os.path.join(relative)
 
     def createWidgets(self):
         print("create widgets")
@@ -33,7 +38,7 @@ class ConverterGui(QtWidgets.QDialog):
         self.lne_watchfolder_path = QtWidgets.QLineEdit(self.folder_message)
 
         self.btn_set_folder = QtWidgets.QPushButton()
-        self.btn_set_folder.setIcon(QtGui.QIcon("icons8-folder-40.png"))
+        self.btn_set_folder.setIcon(QtGui.QIcon(self.resource_path(self.folder_icon)))
         self.btn_set_folder.setFlat(True)
 
         self.rbn_prores = QtWidgets.QRadioButton("Prores proxy")
@@ -105,12 +110,14 @@ class ConverterGui(QtWidgets.QDialog):
         self.lne_watchfolder_path.editingFinished.connect(self.editPath)
 
     def proresToggled(self):
-        print("prores")
-        self.format = "prores"
+        if (self.rbn_prores.isChecked()):
+            self.format = "prores"
+            print(f"format is set to: {self.format}")
 
     def h264Toggled(self):
-        print("h264")
-        self.format = "h264"
+        if (self.rbn_h264.isChecked()):
+            self.format = "h264"
+            print(f"format is set to: {self.format}")
 
     def addToCounter(self):
         self.files_converted +=1
