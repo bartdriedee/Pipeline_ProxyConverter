@@ -2,7 +2,8 @@ import PySide2.QtWidgets as QtWidgets
 import PySide2.QtCore as QtCore
 import PySide2.QtGui as QtGui
 from watch_folder import FolderWatcher
-import sys,os
+import sys
+import os
 
 
 class ConverterGui(QtWidgets.QDialog):
