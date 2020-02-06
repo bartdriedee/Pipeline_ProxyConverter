@@ -17,9 +17,12 @@ class ProxyConverter:
             nulpointer = "nul"
         else:
             nulpointer = "/dev/null"
-        framecounter = subprocess.run('ffmpeg -y -hide_banner -loglevel error -stats -i "{0}" -c:v copy -f rawvideo {1}'.format(input, nulpointer), stderr=subprocess.PIPE, check=True, shell=True)
-        framecount = framecounter.stderr.decode("utf-8").split()[1]
-        return float(framecount)
+        framecounter = subprocess.Popen(f'mediainfo --Inform="Video;%Duration%,%FrameRate%" {input}',shell=True, bufsize=0, stdout=subprocess.PIPE).stdout
+        length_in_ms,fps = [float(i) for i in framecounter.read().decode("utf-8").split()[0].split(",")]
+
+        #framecounter = subprocess.run('ffmpeg -y -hide_banner -loglevel error -stats -i "{0}" -c:v copy -f rawvideo {1}'.format(input, nulpointer), stderr=subprocess.PIPE, check=True, shell=True)
+        #framecount = framecounter.sterr.decode("utf-8").split()[1]
+        return float(length_in_ms/1000*fps)
 
 
     def process(self, input, output, signals, codec):

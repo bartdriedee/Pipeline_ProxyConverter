@@ -15,7 +15,7 @@ class ImagesEventHandler(RegexMatchingEventHandler):
 
     # Catch - all file system events
     def on_any_event(self, event):
-        # print "any"
+        print ("any ",event)
         pass
 
     # called when a file or directory is deleted

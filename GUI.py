@@ -57,8 +57,8 @@ class ConverterGui(QtWidgets.QDialog):
         self.progress_bar.setAlignment(QtCore.Qt.AlignHCenter)
         self.txt_processed = QtWidgets.QTextEdit()
 
-        self.btn_start_stop = QtWidgets.QPushButton("Start")
-        self.btn_start_stop.setEnabled(False)
+        self.btn_start_stop_watching = QtWidgets.QPushButton("Start")
+        self.btn_start_stop_watching.setEnabled(False)
 
     def createLayout(self):
         print("create layout")
@@ -88,7 +88,7 @@ class ConverterGui(QtWidgets.QDialog):
 
         self.btn_layout = QtWidgets.QHBoxLayout()
         self.btn_layout.addStretch()
-        self.btn_layout.addWidget(self.btn_start_stop)
+        self.btn_layout.addWidget(self.btn_start_stop_watching)
 
         # top level layout gets self as parameter
         self.main_layout = QtWidgets.QVBoxLayout(self)
@@ -104,7 +104,7 @@ class ConverterGui(QtWidgets.QDialog):
     def createConnections(self):
         print("create connetions")
         self.btn_set_folder.clicked.connect(self.clickSetFolder)
-        self.btn_start_stop.clicked.connect(self.clickStartStop)
+        self.btn_start_stop_watching.clicked.connect(self.clickStartStopWatcher)
         self.rbn_prores.toggled.connect(self.proresToggled)
         self.rbn_h264.toggled.connect(self.h264Toggled)
         self.lne_watchfolder_path.editingFinished.connect(self.editPath)
@@ -175,16 +175,16 @@ class ConverterGui(QtWidgets.QDialog):
     def setFolderLabel(self, label):
         self.lne_watchfolder_path.setText(label)
 
-    def clickStartStop(self):
+    def clickStartStopWatcher(self):
         if not self.thread_running:
-                self.btn_start_stop.setText("Stop")
+                self.btn_start_stop_watching.setText("Stop")
                 self.thread_running = True
                 self.startWatcher()
                 self.progressbarWaiting()
                 self.updateStatusLabel()
                 self.disableInput()
         else:
-            self.btn_start_stop.setText("Start")
+            self.btn_start_stop_watching.setText("Start")
             self.thread_running = False
             self.progressbarStop()
             self.updateStatusLabel()
@@ -213,11 +213,11 @@ class ConverterGui(QtWidgets.QDialog):
     def editPath(self):
         if self.validatePath(self.lne_watchfolder_path.text()):
             print("Enable Button")
-            self.btn_start_stop.setEnabled(True)
+            self.btn_start_stop_watching.setEnabled(True)
             self.lne_watchfolder_path.setStyleSheet("color:black;")
         else:
             self.setFolderLabel(self.folder_message)
-            self.btn_start_stop.setEnabled(False)
+            self.btn_start_stop_watching.setEnabled(False)
             self.lne_watchfolder_path.setStyleSheet("color:red;")
 
 
@@ -252,15 +252,14 @@ class WatcherThread(QtCore.QThread):
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
-
-
     if len(sys.argv) > 1:
         src_path = sys.argv[1]
         if os.path.isdir(src_path):
             print("Watchfolder is set to: {}".format(src_path))
             gui = ConverterGui()
             gui.watchfolder_path = src_path
-            gui.setFolderLabel()
+            #gui.setFolderLabel(src_path)
+            gui.editPath()
             gui.show()
 
             sys.exit(app.exec_())
