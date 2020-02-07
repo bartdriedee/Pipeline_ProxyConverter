@@ -65,7 +65,8 @@ class ProxyConverter:
         signals.filename_signal.emit(None)
         signals.waiting_signal.emit(None)
 
-    def make_folder(self, path, watchfolder):
+    def make_folder(self, path, watchfolder, sorted_per_card):
+
         # Basefolder represents the first sub-directory in the path when we start looking from the watchfolder path
         base_folder = os.path.relpath(os.path.dirname(path), watchfolder)
 
@@ -75,7 +76,11 @@ class ProxyConverter:
         else:
             base_folder = ""
 
-        proxy_folder = os.path.join(watchfolder,"{}_PROXY".format(base_folder)) # This is the folder where the proxies are placed
+        if sorted_per_card:
+            proxy_folder = os.path.join(watchfolder,f"{base_folder}_PROXY")
+        else:
+            proxy_folder = f"{os.path.dirname(path)}{os.path.sep}PROXIES"
+        # This is the folder where the proxies are placed
         if not os.path.exists(proxy_folder):
             print("Creating folder: {}".format(proxy_folder))
             os.makedirs(proxy_folder)

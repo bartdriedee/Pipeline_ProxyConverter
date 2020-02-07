@@ -12,25 +12,26 @@ class ImagesEventHandler(RegexMatchingEventHandler):
         self.watchfolder = gui.watchfolder_path
         self.signals = gui.signals
         self.codec = gui.format
+        self.sorted_per_card = gui.sorted_per_card
 
     # Catch - all file system events
     def on_any_event(self, event):
-        print ("any ",event)
+        # print("any ",event)
         pass
 
     # called when a file or directory is deleted
     def on_deleted(self, event):
-        # print "delete"
+        # print("delete", event.src_path)
         pass
 
     # called when a file or directory is changed
     def on_modified(self, event):
-        # print "modified"
+        # print("modified", event.src_path)
         pass
 
     # called when a file or a directory is moved or renamed
     def on_moved(self, event):
-        print ("moved", event.src_path)
+        # print("moved", event.src_path)
         pass
 
     # called when a file or a directory is created
@@ -54,7 +55,10 @@ class ImagesEventHandler(RegexMatchingEventHandler):
         filename, extension = os.path.splitext(event.src_path)
         self.output_filename = "{0}_proxy.mov".format(os.path.basename(filename))
 
-        proxy_path = converter.make_folder(event.src_path, self.watchfolder)
+        if self.sorted_per_card != None:
+            proxy_path = converter.make_folder(event.src_path, self.watchfolder, self.sorted_per_card)
+        else:
+            proxy_path = os.path.dirname(event.src_path)
         print("proxy path = ", proxy_path)
 
         output_path = os.path.join(proxy_path, self.output_filename)

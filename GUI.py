@@ -17,12 +17,14 @@ class ConverterGui(QtWidgets.QDialog):
         self.folder_icon = "data/icons8-folder-40.png"
         self.watchfolder_path = self.folder_message
         self.processed_files = ""
-        self.format = "prores"
 
         self.createWidgets()
         self.createLayout()
         self.createConnections()
         self.updateStatusLabel()
+        self.proresToggled()
+        self.fileFolderToggled()
+        self.editPath()
 
     def resource_path(self, relative):
         if hasattr(sys, "_MEIPASS"):
@@ -32,8 +34,6 @@ class ConverterGui(QtWidgets.QDialog):
 
     def createWidgets(self):
         print("create widgets")
-        self.empty_line = QtWidgets.QLabel()
-
         self.lbl_watchfolder = QtWidgets.QLabel("Watching folder:")
         self.lne_watchfolder_path = QtWidgets.QLineEdit(self.folder_message)
 
@@ -41,9 +41,27 @@ class ConverterGui(QtWidgets.QDialog):
         self.btn_set_folder.setIcon(QtGui.QIcon(self.resource_path(self.folder_icon)))
         self.btn_set_folder.setFlat(True)
 
-        self.rbn_prores = QtWidgets.QRadioButton("Prores proxy")
-        self.rbn_prores.setChecked(True)
+
+        self.lbl_format = QtWidgets.QLabel("What is your prefered format?")
         self.rbn_h264 = QtWidgets.QRadioButton("H264")
+        self.rbn_prores = QtWidgets.QRadioButton("Prores proxy")
+
+        self.rbn_format_group = QtWidgets.QButtonGroup()
+        self.rbn_format_group.addButton(self.rbn_h264)
+        self.rbn_format_group.addButton(self.rbn_prores)
+        self.rbn_prores.setChecked(True)
+
+
+        self.lbl_sorting = QtWidgets.QLabel("How would you like your proxies sorted?")
+        self.rbn_no_folder = QtWidgets.QRadioButton("No folders")
+        self.rbn_card_folder = QtWidgets.QRadioButton("Folder per card")
+        self.rbn_file_folder = QtWidgets.QRadioButton("Folder next to source")
+
+        self.rbn_sorting_group = QtWidgets.QButtonGroup()
+        self.rbn_sorting_group.addButton(self.rbn_no_folder)
+        self.rbn_sorting_group.addButton(self.rbn_card_folder)
+        self.rbn_sorting_group.addButton(self.rbn_file_folder)
+        self.rbn_file_folder.setChecked(True)
 
         self.lbl_files_converted = QtWidgets.QLabel("Files converted:")
 
@@ -66,9 +84,22 @@ class ConverterGui(QtWidgets.QDialog):
         self.folder_path_layout.addWidget(self.lne_watchfolder_path)
         self.folder_path_layout.addWidget(self.btn_set_folder)
 
-        self.format_layout = QtWidgets.QHBoxLayout()
-        self.format_layout.addWidget(self.rbn_h264)
-        self.format_layout.addWidget(self.rbn_prores)
+        self.format_lbl_layout = QtWidgets.QHBoxLayout()
+        self.format_lbl_layout.addWidget(self.lbl_format)
+        self.format_lbl_layout.addStretch()
+
+        self.format_rbn_layout = QtWidgets.QHBoxLayout()
+        self.format_rbn_layout.addWidget(self.rbn_h264)
+        self.format_rbn_layout.addWidget(self.rbn_prores)
+
+        self.sorting_lbl_layout = QtWidgets.QHBoxLayout()
+        self.sorting_lbl_layout.addWidget(self.lbl_sorting)
+        self.sorting_lbl_layout.addStretch()
+
+        self.sorting_rbn_layout = QtWidgets.QHBoxLayout()
+        self.sorting_rbn_layout.addWidget(self.rbn_no_folder)
+        self.sorting_rbn_layout.addWidget(self.rbn_card_folder)
+        self.sorting_rbn_layout.addWidget(self.rbn_file_folder)
 
         self.folder_lbl_layout = QtWidgets.QHBoxLayout()
         self.folder_lbl_layout.addWidget(self.lbl_watchfolder)
@@ -93,8 +124,13 @@ class ConverterGui(QtWidgets.QDialog):
         # top level layout gets self as parameter
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.addLayout(self.folder_layout)
-        self.main_layout.addLayout(self.format_layout)
-        self.main_layout.addWidget(self.empty_line)
+        self.main_layout.addWidget(QtWidgets.QLabel())  # Adds an empty line
+        self.main_layout.addLayout(self.format_lbl_layout)
+        self.main_layout.addLayout(self.format_rbn_layout)
+        self.main_layout.addWidget(QtWidgets.QLabel())  # Adds an empty line
+        self.main_layout.addLayout(self.sorting_lbl_layout)
+        self.main_layout.addLayout(self.sorting_rbn_layout)
+        self.main_layout.addWidget(QtWidgets.QLabel())  # Adds an empty line
         self.main_layout.addLayout(self.counter_layout)
         self.main_layout.addLayout(self.status_layout)
         self.main_layout.addWidget(self.progress_bar)
@@ -107,6 +143,9 @@ class ConverterGui(QtWidgets.QDialog):
         self.btn_start_stop_watching.clicked.connect(self.clickStartStopWatcher)
         self.rbn_prores.toggled.connect(self.proresToggled)
         self.rbn_h264.toggled.connect(self.h264Toggled)
+        self.rbn_no_folder.toggled.connect(self.noFolderToggled)
+        self.rbn_card_folder.toggled.connect(self.cardFolderToggled)
+        self.rbn_file_folder.toggled.connect(self.fileFolderToggled)
         self.lne_watchfolder_path.editingFinished.connect(self.editPath)
 
     def proresToggled(self):
@@ -118,6 +157,21 @@ class ConverterGui(QtWidgets.QDialog):
         if (self.rbn_h264.isChecked()):
             self.format = "h264"
             print(f"format is set to: {self.format}")
+
+    def noFolderToggled(self):
+        if (self.rbn_no_folder.isChecked()):
+            self.sorted_per_card = None
+            print("Folder sorting is None")
+
+    def cardFolderToggled(self):
+        if (self.rbn_card_folder.isChecked()):
+            self.sorted_per_card = True
+            print("Folder sorting is per card")
+
+    def fileFolderToggled(self):
+        if (self.rbn_file_folder.isChecked()):
+            self.sorted_per_card = False
+            print("Folder sorting is at file location")
 
     def addToCounter(self):
         self.files_converted +=1
@@ -193,12 +247,18 @@ class ConverterGui(QtWidgets.QDialog):
     def disableInput(self):
         self.rbn_prores.setDisabled(True)
         self.rbn_h264.setDisabled(True)
+        self.rbn_no_folder.setDisabled(True)
+        self.rbn_file_folder.setDisabled(True)
+        self.rbn_card_folder.setDisabled(True)
         self.lne_watchfolder_path.setDisabled(True)
         self.btn_set_folder.setDisabled(True)
 
     def enableInput(self):
         self.rbn_prores.setEnabled(True)
         self.rbn_h264.setEnabled(True)
+        self.rbn_no_folder.setEnabled(True)
+        self.rbn_file_folder.setEnabled(True)
+        self.rbn_card_folder.setEnabled(True)
         self.lne_watchfolder_path.setEnabled(True)
         self.btn_set_folder.setEnabled(True)
 
@@ -258,8 +318,6 @@ if __name__ == "__main__":
             print("Watchfolder is set to: {}".format(src_path))
             gui = ConverterGui()
             gui.watchfolder_path = src_path
-            #gui.setFolderLabel(src_path)
-            gui.editPath()
             gui.show()
 
             sys.exit(app.exec_())
