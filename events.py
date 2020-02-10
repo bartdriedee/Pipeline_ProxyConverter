@@ -1,6 +1,22 @@
 import os, time
 from watchdog.events import RegexMatchingEventHandler
+from watchdog.events import FileSystemEvent
 from convert_to_prores_proxy import ProxyConverter
+
+
+class ManualEvent(FileSystemEvent):
+    EVENT_TYPE_CREATED = 'created'
+    """File system event representing file creation on the file system."""
+    event_type = EVENT_TYPE_CREATED
+
+    def __init__(self, src_path):
+        super(ManualEvent, self).__init__(src_path)
+        self.is_synthetic = True
+
+    def __repr__(self):
+        return ("<%(class_name)s: src_path=%(src_path)r>"
+                ) % (dict(class_name=self.__class__.__name__,
+                          src_path=self.src_path))
 
 
 class ImagesEventHandler(RegexMatchingEventHandler):
@@ -9,10 +25,19 @@ class ImagesEventHandler(RegexMatchingEventHandler):
 
     def __init__(self, gui):
         super(ImagesEventHandler,self).__init__(self.IMAGES_REGEX)
+        self.existing_files = gui.existing_files
         self.watchfolder = gui.watchfolder_path
         self.signals = gui.signals
         self.codec = gui.format
         self.sorted_per_card = gui.sorted_per_card
+        for file in self.existing_files:
+            print(file)
+            self.queueExistingFiles(file)
+
+    def queueExistingFiles(self,path):
+        print(f"PRE-WATCH ACTION {path}")
+        self.dispatch( ManualEvent(path))
+
 
     # Catch - all file system events
     def on_any_event(self, event):
@@ -36,6 +61,7 @@ class ImagesEventHandler(RegexMatchingEventHandler):
 
     # called when a file or a directory is created
     def on_created(self, event):
+        print(f"created event: {event.src_path}")
         file_size = -1
         while file_size != os.path.getsize(event.src_path):
             file_size = os.path.getsize(event.src_path)

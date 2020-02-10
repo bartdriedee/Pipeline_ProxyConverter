@@ -1,4 +1,4 @@
-import sys, os, time
+import time
 from watchdog.observers import Observer
 from events import ImagesEventHandler
 
@@ -32,8 +32,4 @@ class FolderWatcher:
 
 
     def __schedule(self):
-        self.__event_observer.schedule(
-            self.__event_handler,
-            self.__src_path,
-            recursive=True
-        )
+        self.__event_observer.schedule(self.__event_handler, self.__src_path, recursive=True)

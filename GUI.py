@@ -2,8 +2,7 @@ import PySide2.QtWidgets as QtWidgets
 import PySide2.QtCore as QtCore
 import PySide2.QtGui as QtGui
 from watch_folder import FolderWatcher
-import sys
-import os
+import sys, os
 
 class ConverterGui(QtWidgets.QDialog):
     def __init__(self, parent=None):
@@ -17,6 +16,7 @@ class ConverterGui(QtWidgets.QDialog):
         self.folder_icon = "data/icons8-folder-40.png"
         self.watchfolder_path = self.folder_message
         self.processed_files = ""
+        self.existing_files = []
 
         self.createWidgets()
         self.createLayout()
@@ -225,6 +225,9 @@ class ConverterGui(QtWidgets.QDialog):
             self.setFolderLabel(self.watchfolder_path)
             self.updateStatusLabel()
             self.editPath()
+            for root, dirs, files in os.walk(selected_folder):
+                for x,file in enumerate(files):
+                    self.existing_files.append((os.path.join(root, files[x])))
 
     def setFolderLabel(self, label):
         self.lne_watchfolder_path.setText(label)
@@ -309,19 +312,3 @@ class WatcherThread(QtCore.QThread):
     def run(self,):
         FolderWatcher(self.gui).run()
 
-
-if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)
-    if len(sys.argv) > 1:
-        src_path = sys.argv[1]
-        if os.path.isdir(src_path):
-            print("Watchfolder is set to: {}".format(src_path))
-            gui = ConverterGui()
-            gui.watchfolder_path = src_path
-            gui.show()
-
-            sys.exit(app.exec_())
-    else:
-        gui = ConverterGui()
-        gui.show()
-        sys.exit(app.exec_())

@@ -1,6 +1,5 @@
-import os, sys
+import os
 import subprocess
-import PySide2.QtCore as QtCore
 import math
 
 
@@ -13,18 +12,19 @@ class ProxyConverter:
 
 
     def countFrames(self,input):
-        print("Counting frames: ",input)
+
         framecounter = subprocess.Popen(f'mediainfo --Inform="Video;%Duration%,%FrameRate%" "{input}"',shell=True, bufsize=0, stdout=subprocess.PIPE).stdout
         output = framecounter.read().decode("utf-8")
-        length_in_ms,fps= (output.split(","))
-        return float(length_in_ms)/1000*float(fps)
+        length_in_ms, fps= (output.split(","))
+        framecount = float(length_in_ms)/1000*float(fps)
+        print(f"{framecount} frames counted")
+        return framecount
 
 
     def process(self, input, output, signals, codec):
         print("Converting file: {}".format(input))
         signals.filename_signal.emit(os.path.basename(input))
         length = self.countFrames(input)
-        print("length =", length, "frames")
 
         if self.force_aspect:
             aspect_cmd = ':force_original_aspect_ratio=decrease'
@@ -85,14 +85,3 @@ class ProxyConverter:
             print("Creating folder: {}".format(proxy_folder))
             os.makedirs(proxy_folder)
         return proxy_folder
-
-
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        src_path = sys.argv[1]
-        if os.path.isdir(src_path):
-            print("Converting files in folder: {}".format(src_path))
-
-
-    else:
-        print("Please specify a folder to convert")
