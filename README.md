@@ -4,4 +4,5 @@ FFMpeg wrapper with watchfolder functionality to generate proxies from camera cl
 requires ffmpeg and mediaInfo.
 
 https://ffmpeg.org/download.html
+
 https://mediaarea.net/en/MediaInfo/Download
