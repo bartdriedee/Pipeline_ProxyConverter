@@ -3,8 +3,8 @@
 block_cipher = None
 
 
-a = Analysis(['/Users/wen/PycharmProjects/Pipeline_ProxyConverter/GUI.py'],
-             pathex=['/Users/wen/PycharmProjects/Pipeline_ProxyConverter'],
+a = Analysis(['/Users/wen/PycharmProjects/Pipeline_ProxyConverter/main.py'],
+             pathex=['/Users/wen'],
              binaries=[],
              datas=[],
              hiddenimports=[],
@@ -34,6 +34,6 @@ exe = EXE(pyz,
           console=False )
 app = BUNDLE(exe,
 	     Tree('data', prefix='data'),
-             name='GUI.app',
+             name='ConvertTo.app',
              icon=None,
              bundle_identifier=None)
