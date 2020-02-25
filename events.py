@@ -5,9 +5,8 @@ from convert_to_prores_proxy import ProxyConverter
 
 
 class ManualEvent(FileSystemEvent):
-    EVENT_TYPE_CREATED = 'created'
-    """File system event representing file creation on the file system."""
-    event_type = EVENT_TYPE_CREATED
+    """User initiated event representing file presence on the file system."""
+    event_type = 'created'
 
     def __init__(self, src_path):
         super(ManualEvent, self).__init__(src_path)
@@ -26,68 +25,65 @@ class ImagesEventHandler(RegexMatchingEventHandler):
     def __init__(self, gui):
         super(ImagesEventHandler,self).__init__(self.IMAGES_REGEX)
         self.existing_files = gui.existing_files
+        self.watch = gui.watch
         self.watchfolder = gui.watchfolder_path
         self.signals = gui.signals
         self.codec = gui.format
-        self.sorted_per_card = gui.sorted_per_card
+        self.folder_sorting_per_card = gui.sorted_per_card
+        self.existing_files_processed = 0
         for file in self.existing_files:
-            print(file)
             self.queueExistingFiles(file)
 
+    # Manually add file to event_queue
     def queueExistingFiles(self,path):
-        print(f"PRE-WATCH ACTION {path}")
-        self.dispatch( ManualEvent(path))
-
-
-    # Catch - all file system events
-    def on_any_event(self, event):
-        # print("any ",event)
-        pass
-
-    # called when a file or directory is deleted
-    def on_deleted(self, event):
-        # print("delete", event.src_path)
-        pass
-
-    # called when a file or directory is changed
-    def on_modified(self, event):
-        # print("modified", event.src_path)
-        pass
-
-    # called when a file or a directory is moved or renamed
-    def on_moved(self, event):
-        # print("moved", event.src_path)
-        pass
+        self.dispatch(ManualEvent(path))
 
     # called when a file or a directory is created
     def on_created(self, event):
-        print(f"created event: {event.src_path}")
+        # Synthetic events are always processed
+        if event.is_synthetic:
+            self.process(event)
+            self.existing_files_processed += 1
+        else:
+            # File system event are only processed when watchfolder functionality is checked.
+            if self.watch:
+                if self.fileReady(event):
+                    self.process(event)
+
+    # Check is the file is done writing and there is no lock on the file
+    def fileReady(self,event):
+        file_path = event.src_path
+        # See if the file size is still growing
         file_size = -1
-        while file_size != os.path.getsize(event.src_path):
-            file_size = os.path.getsize(event.src_path)
+        while file_size != os.path.getsize(file_path):
+            file_size = os.path.getsize(file_path)
             time.sleep(1)
+        # See if the file is being used by another process
         file_done = False
         while not file_done:
             try:
-                os.rename(event.src_path, event.src_path)
+                os.rename(file_path, file_path)
                 file_done = True
-
             except:
-                pass
-        self.process(event)
+                return True
 
+    # Process the file represented by the event
     def process(self, event):
         converter = ProxyConverter()
         filename, extension = os.path.splitext(event.src_path)
-        self.output_filename = "{0}_proxy.mov".format(os.path.basename(filename))
+        output_filename = f"{os.path.basename(filename)}_proxy.mov"
 
-        if self.sorted_per_card != None:
-            proxy_path = converter.make_folder(event.src_path, self.watchfolder, self.sorted_per_card)
+        if self.folder_sorting_per_card is not None:
+            # if True (per card) or false (at file location) make a proxy folder
+            proxy_path = converter.make_folder(event.src_path, self.watchfolder, self.folder_sorting_per_card)
         else:
+            # if None don't make a folder
             proxy_path = os.path.dirname(event.src_path)
-        print("proxy path = ", proxy_path)
 
-        output_path = os.path.join(proxy_path, self.output_filename)
-        print("output path = ", output_path)
+        output_path = os.path.join(proxy_path, output_filename)
 
         converter.process(event.src_path, output_path, self.signals, self.codec)
+        # if we're not using the watchfolder functionality, stop the process when all files are processed.
+        if not self.watch:
+            if self.existing_files_processed == len(self.existing_files):
+                self.signals.queue_completed_signal.emit()

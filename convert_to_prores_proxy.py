@@ -13,7 +13,11 @@ class ProxyConverter:
 
     def countFrames(self,input):
 
-        framecounter = subprocess.Popen(f'mediainfo --Inform="Video;%Duration%,%FrameRate%" "{input}"',shell=True, bufsize=0, stdout=subprocess.PIPE).stdout
+        framecounter = subprocess.Popen(f'mediainfo --Inform="Video;%Duration%,%FrameRate%" "{input}"',
+                                        shell=True,
+                                        bufsize=0,
+                                        stdout=subprocess.PIPE
+                                        ).stdout
         output = framecounter.read().decode("utf-8")
         length_in_ms, fps= (output.split(","))
         framecount = float(length_in_ms)/1000*float(fps)
@@ -58,8 +62,9 @@ class ProxyConverter:
             try:
                 signals.progress_signal.emit(math.floor((float(line.strip().split()[1])/length)*100))
             except:
-                pass
-        print("wating for next file")
+                # print error message
+                signals.processed_signal.emit(line)
+                return
         signals.processed_signal.emit(input)
         signals.count_signal.emit(None)
         signals.filename_signal.emit(None)

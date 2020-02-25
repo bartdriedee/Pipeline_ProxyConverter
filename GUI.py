@@ -17,6 +17,7 @@ class ConverterGui(QtWidgets.QDialog):
         self.watchfolder_path = self.folder_message
         self.processed_files = ""
         self.existing_files = []
+        self.watch = False
 
         self.createWidgets()
         self.createLayout()
@@ -26,6 +27,7 @@ class ConverterGui(QtWidgets.QDialog):
         self.fileFolderToggled()
         self.editPath()
 
+    #Update path for OSX app
     def resource_path(self, relative):
         if hasattr(sys, "_MEIPASS"):
             print(os.path.join(sys._MEIPASS, relative))
@@ -41,8 +43,10 @@ class ConverterGui(QtWidgets.QDialog):
         self.btn_set_folder.setIcon(QtGui.QIcon(self.resource_path(self.folder_icon)))
         self.btn_set_folder.setFlat(True)
 
+        self.lbl_watch = QtWidgets.QLabel("Watchfolder")
+        self.cb_watch = QtWidgets.QCheckBox()
 
-        self.lbl_format = QtWidgets.QLabel("What is your prefered format?")
+        self.lbl_format = QtWidgets.QLabel("File format:")
         self.rbn_h264 = QtWidgets.QRadioButton("H264")
         self.rbn_prores = QtWidgets.QRadioButton("Prores proxy")
 
@@ -51,8 +55,7 @@ class ConverterGui(QtWidgets.QDialog):
         self.rbn_format_group.addButton(self.rbn_prores)
         self.rbn_prores.setChecked(True)
 
-
-        self.lbl_sorting = QtWidgets.QLabel("How would you like your proxies sorted?")
+        self.lbl_sorting = QtWidgets.QLabel("Proxy sorting:")
         self.rbn_no_folder = QtWidgets.QRadioButton("No folders")
         self.rbn_card_folder = QtWidgets.QRadioButton("Folder per card")
         self.rbn_file_folder = QtWidgets.QRadioButton("Folder next to source")
@@ -73,30 +76,33 @@ class ConverterGui(QtWidgets.QDialog):
         self.lbl_current_file.setAlignment(QtCore.Qt.AlignRight)
         self.progress_bar = QtWidgets.QProgressBar()
         self.progress_bar.setAlignment(QtCore.Qt.AlignHCenter)
+
         self.txt_processed = QtWidgets.QTextEdit()
 
         self.btn_start_stop_watching = QtWidgets.QPushButton("Start")
         self.btn_start_stop_watching.setEnabled(False)
 
     def createLayout(self):
-        print("create layout")
+        print("creating layout")
+        # Path input field
         self.folder_path_layout = QtWidgets.QHBoxLayout()
         self.folder_path_layout.addWidget(self.lne_watchfolder_path)
         self.folder_path_layout.addWidget(self.btn_set_folder)
 
-        self.format_lbl_layout = QtWidgets.QHBoxLayout()
-        self.format_lbl_layout.addWidget(self.lbl_format)
-        self.format_lbl_layout.addStretch()
+        # Checkbox to toggle between folder watching or only present items
+        self.watch_cb_layout = QtWidgets.QFormLayout()
+        self.watch_cb_layout.addRow(self.lbl_watch, self.cb_watch)
 
-        self.format_rbn_layout = QtWidgets.QHBoxLayout()
+        # Radio buttons for output format
+        self.format_rbn_layout = QtWidgets.QVBoxLayout()
+        self.format_rbn_layout.setAlignment(QtCore.Qt.AlignTop)
+        self.format_rbn_layout.addWidget(self.lbl_format)
         self.format_rbn_layout.addWidget(self.rbn_h264)
         self.format_rbn_layout.addWidget(self.rbn_prores)
 
-        self.sorting_lbl_layout = QtWidgets.QHBoxLayout()
-        self.sorting_lbl_layout.addWidget(self.lbl_sorting)
-        self.sorting_lbl_layout.addStretch()
-
-        self.sorting_rbn_layout = QtWidgets.QHBoxLayout()
+        # Radio buttons to set the proxy-file location
+        self.sorting_rbn_layout = QtWidgets.QVBoxLayout()
+        self.sorting_rbn_layout.addWidget(self.lbl_sorting)
         self.sorting_rbn_layout.addWidget(self.rbn_no_folder)
         self.sorting_rbn_layout.addWidget(self.rbn_card_folder)
         self.sorting_rbn_layout.addWidget(self.rbn_file_folder)
@@ -121,15 +127,16 @@ class ConverterGui(QtWidgets.QDialog):
         self.btn_layout.addStretch()
         self.btn_layout.addWidget(self.btn_start_stop_watching)
 
+        self.option_layout = QtWidgets.QHBoxLayout()
+        self.option_layout.addLayout(self.format_rbn_layout)
+        self.option_layout.addLayout(self.sorting_rbn_layout)
+
         # top level layout gets self as parameter
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.addLayout(self.folder_layout)
+        self.main_layout.addLayout(self.watch_cb_layout)
         self.main_layout.addWidget(QtWidgets.QLabel())  # Adds an empty line
-        self.main_layout.addLayout(self.format_lbl_layout)
-        self.main_layout.addLayout(self.format_rbn_layout)
-        self.main_layout.addWidget(QtWidgets.QLabel())  # Adds an empty line
-        self.main_layout.addLayout(self.sorting_lbl_layout)
-        self.main_layout.addLayout(self.sorting_rbn_layout)
+        self.main_layout.addLayout(self.option_layout)
         self.main_layout.addWidget(QtWidgets.QLabel())  # Adds an empty line
         self.main_layout.addLayout(self.counter_layout)
         self.main_layout.addLayout(self.status_layout)
@@ -141,6 +148,7 @@ class ConverterGui(QtWidgets.QDialog):
         print("create connetions")
         self.btn_set_folder.clicked.connect(self.clickSetFolder)
         self.btn_start_stop_watching.clicked.connect(self.clickStartStopWatcher)
+        self.cb_watch.stateChanged.connect(self.updateWatch)
         self.rbn_prores.toggled.connect(self.proresToggled)
         self.rbn_h264.toggled.connect(self.h264Toggled)
         self.rbn_no_folder.toggled.connect(self.noFolderToggled)
@@ -149,22 +157,22 @@ class ConverterGui(QtWidgets.QDialog):
         self.lne_watchfolder_path.editingFinished.connect(self.editPath)
 
     def proresToggled(self):
-        if (self.rbn_prores.isChecked()):
+        if self.rbn_prores.isChecked():
             self.format = "prores"
             print(f"format is set to: {self.format}")
 
     def h264Toggled(self):
-        if (self.rbn_h264.isChecked()):
+        if self.rbn_h264.isChecked():
             self.format = "h264"
             print(f"format is set to: {self.format}")
 
     def noFolderToggled(self):
-        if (self.rbn_no_folder.isChecked()):
+        if self.rbn_no_folder.isChecked():
             self.sorted_per_card = None
             print("Folder sorting is None")
 
     def cardFolderToggled(self):
-        if (self.rbn_card_folder.isChecked()):
+        if self.rbn_card_folder.isChecked():
             self.sorted_per_card = True
             print("Folder sorting is per card")
 
@@ -177,11 +185,11 @@ class ConverterGui(QtWidgets.QDialog):
         self.files_converted +=1
         self.lbl_counter.setText(str(self.files_converted))
 
-    def addToProccesed(self, file):
+    def addToProccesed(self, input_string):
         txt = []
         txt.append(self.processed_files)
         txt.append("\n")
-        txt.append(file)
+        txt.append(input_string)
         self.processed_files = r"".join(txt)
         self.txt_processed.setText(self.processed_files)
 
@@ -232,6 +240,10 @@ class ConverterGui(QtWidgets.QDialog):
     def setFolderLabel(self, label):
         self.lne_watchfolder_path.setText(label)
 
+    def updateWatch(self):
+        self.watch = self.cb_watch.isChecked()
+        print(f"watch = {self.cb_watch.isChecked()}")
+
     def clickStartStopWatcher(self):
         if not self.thread_running:
                 self.btn_start_stop_watching.setText("Stop")
@@ -255,6 +267,7 @@ class ConverterGui(QtWidgets.QDialog):
         self.rbn_card_folder.setDisabled(True)
         self.lne_watchfolder_path.setDisabled(True)
         self.btn_set_folder.setDisabled(True)
+        self.cb_watch.setDisabled(True)
 
     def enableInput(self):
         self.rbn_prores.setEnabled(True)
@@ -264,18 +277,17 @@ class ConverterGui(QtWidgets.QDialog):
         self.rbn_card_folder.setEnabled(True)
         self.lne_watchfolder_path.setEnabled(True)
         self.btn_set_folder.setEnabled(True)
+        self.cb_watch.setEnabled(True)
 
     def validatePath(self, input_path):
         if os.path.isdir(input_path):
-            print("{} is a valid path".format(input_path))
             return True
         else:
-
             return False
 
+    # Update the Path line edit with the selected path or show message asking to change it.
     def editPath(self):
         if self.validatePath(self.lne_watchfolder_path.text()):
-            print("Enable Button")
             self.btn_start_stop_watching.setEnabled(True)
             self.lne_watchfolder_path.setStyleSheet("color:black;")
         else:
@@ -283,16 +295,22 @@ class ConverterGui(QtWidgets.QDialog):
             self.btn_start_stop_watching.setEnabled(False)
             self.lne_watchfolder_path.setStyleSheet("color:red;")
 
-
-    def startWatcher(self):
-        self.watcher_thread = WatcherThread(self)
+    def connectSignals(self):
         self.signals = WatcherConnections()
-        self.watcher_thread.start()
         self.signals.progress_signal.connect(self.progressbarSetPercentage)
         self.signals.filename_signal.connect(self.updateStatusLabel)
         self.signals.waiting_signal.connect(self.progressbarWaiting)
         self.signals.count_signal.connect(self.addToCounter)
         self.signals.processed_signal.connect(self.addToProccesed)
+        self.signals.queue_completed_signal.connect(self.stopWatcher)
+
+    def startWatcher(self):
+        self.watcher_thread = WatcherThread(self)
+        self.watcher_thread.start()
+        self.connectSignals()
+
+    def stopWatcher(self):
+        self.watcher_thread.stop()
 
 
 class WatcherConnections(QtCore.QObject):
@@ -301,6 +319,7 @@ class WatcherConnections(QtCore.QObject):
     waiting_signal = QtCore.Signal(object)
     count_signal = QtCore.Signal(object)
     processed_signal = QtCore.Signal(object)
+    queue_completed_signal = QtCore.Signal(object)
 
 
 class WatcherThread(QtCore.QThread):
